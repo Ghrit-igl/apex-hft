@@ -1,0 +1,435 @@
+# ==============================================================================
+# AAYU Standard Library: Math (std/math.aayu)
+# 100% Pure AAYU - High-Precision Mathematical Computing Engine
+# Zero Python, Zero External Dependencies, Silicon Speed
+# ==============================================================================
+
+action abs(x)
+    if x < 0.0
+        return 0.0 - x
+    end
+    return x
+end
+
+action max(a, b)
+    if a > b
+        return a
+    end
+    return b
+end
+
+action min(a, b)
+    if a < b
+        return a
+    end
+    return b
+end
+
+action clamp(val, low, high)
+    if val < low
+        return low
+    end
+    if val > high
+        return high
+    end
+    return val
+end
+
+action pow(base, exp)
+    return math_pow(base, exp)
+end
+
+action pow_pure(base, exp)
+    if exp == 0
+        return 1.0
+    end
+    if exp < 0
+        return 1.0 / pow_pure(base, 0 - exp)
+    end
+    let res = 1.0
+    let count = 0
+    while count < exp
+        res = res * base
+        count = count + 1
+    end
+    return res
+end
+
+# Hardware-Accelerated IEEE-754 Square Root
+action sqrt(x)
+    if x <= 0.0
+        return 0.0
+    end
+    return math_sqrt(x)
+end
+
+# Pure-AAYU High-precision Newton-Raphson square root (with dynamic convergence)
+action sqrt_pure(x)
+    if x <= 0.0
+        return 0.0
+    end
+    let guess = x / 2.0
+    let iter = 0
+    while iter < 32
+        let next_guess = (guess + (x / guess)) / 2.0
+        if abs(next_guess - guess) < 0.000000000001
+            return next_guess
+        end
+        guess = next_guess
+        iter = iter + 1
+    end
+    return guess
+end
+
+# Fundamental mathematical constants
+action math_pi()
+    return 3.141592653589793
+end
+
+action math_e()
+    return 2.718281828459045
+end
+
+action math_ln2()
+    return 0.693147180559945
+end
+
+# Hardware-Accelerated IEEE-754 Exponential e^x
+action exp(x)
+    return math_exp(x)
+end
+
+# Pure-AAYU High-precision Exponential e^x via Scaling and Squaring with 8th-order Taylor series
+action exp_pure(x)
+    if x < -40.0
+        return 0.0
+    end
+    if x > 40.0
+        return 235385266837019985.4
+    end
+
+    # Scale down by 2^4 = 16 to guarantee |y| <= 2.5
+    let y = x / 16.0
+    let y2 = y * y
+    let y3 = y2 * y
+    let y4 = y2 * y2
+    let y5 = y4 * y
+    let y6 = y3 * y3
+    let y7 = y6 * y
+
+    # Taylor series: 1 + y + y^2/2! + y^3/3! + y^4/4! + y^5/5! + y^6/6! + y^7/7!
+    let term = 1.0 + y + (y2 / 2.0) + (y3 / 6.0) + (y4 / 24.0) + (y5 / 120.0) + (y6 / 720.0) + (y7 / 5040.0)
+
+    # Square 4 times: (term^2)^2... = term^16
+    let s1 = term * term
+    let s2 = s1 * s1
+    let s3 = s2 * s2
+    let s4 = s3 * s3
+    return s4
+end
+
+# Hardware-Accelerated IEEE-754 Natural Logarithm ln(x)
+action ln(x)
+    if x <= 0.0
+        return -999999.0
+    end
+    return math_ln(x)
+end
+
+# Pure-AAYU Natural Logarithm ln(x) via Range Reduction & Inverse Hyperbolic Tangent Series
+action ln_pure(x)
+    if x <= 0.0
+        return -999999.0
+    end
+
+    let val = x
+    let k = 0
+    let ln2_val = 0.693147180559945
+
+    # Range reduction: reduce to [0.5, 2.0] by tracking powers of 2
+    while val > 2.0
+        val = val / 2.0
+        k = k + 1
+    end
+    while val < 0.5
+        val = val * 2.0
+        k = k - 1
+    end
+
+    # z = (val - 1) / (val + 1)
+    let z = (val - 1.0) / (val + 1.0)
+    let z2 = z * z
+    let z3 = z * z2
+    let z5 = z3 * z2
+    let z7 = z5 * z2
+    let z9 = z7 * z2
+
+    let series = 2.0 * (z + (z3 / 3.0) + (z5 / 5.0) + (z7 / 7.0) + (z9 / 9.0))
+    return (k * ln2_val) + series
+end
+
+action log10(x)
+    if x <= 0.0
+        return -999999.0
+    end
+    let ln_val = math_ln(x)
+    let ln_10 = 2.302585092994046
+    return ln_val / ln_10
+end
+
+# Non-linear activation: Rectified Linear Unit (ReLU)
+action relu(x)
+    if x > 0.0
+        return x
+    end
+    return 0.0
+end
+
+action leaky_relu(x, alpha)
+    if x > 0.0
+        return x
+    end
+    return alpha * x
+end
+
+# High-precision numerically stable Sigmoid: 1 / (1 + e^-x)
+action sigmoid(x)
+    if x < -30.0
+        return 0.0
+    end
+    if x > 30.0
+        return 1.0
+    end
+    let ex = exp(0.0 - x)
+    return 1.0 / (1.0 + ex)
+end
+
+# Hardware-Accelerated Hyperbolic Tangent: tanh(x)
+action tanh(x)
+    return math_tanh(x)
+end
+
+# Pure-AAYU Hyperbolic Tangent: tanh(x) = (e^2x - 1) / (e^2x + 1)
+action tanh_pure(x)
+    if x > 20.0
+        return 1.0
+    end
+    if x < -20.0
+        return -1.0
+    end
+    let e2x = exp_pure(2.0 * x)
+    return (e2x - 1.0) / (e2x + 1.0)
+end
+
+# Gaussian Error Linear Unit (GELU) used in LLMs (GPT, LLaMA, BERT)
+# GELU(x) = 0.5 * x * (1 + tanh(sqrt(2/pi) * (x + 0.044715 * x^3)))
+action gelu(x)
+    let sqrt_2_pi = 0.7978845608
+    let coeff = 0.044715
+    let x3 = x * x * x
+    let inner = sqrt_2_pi * (x + (coeff * x3))
+    let t = tanh(inner)
+    return 0.5 * x * (1.0 + t)
+end
+
+# SiLU / Swish activation: x * sigmoid(x)
+action silu(x)
+    return x * sigmoid(x)
+end
+
+# Dot product of two vectors
+action dot_product(v1, v2)
+    let sum = 0.0
+    let l1 = len(v1)
+    let l2 = len(v2)
+    let loop_len = min(l1, l2)
+    let i = 0
+    while i < loop_len
+        sum = sum + (v1[i] * v2[i])
+        i = i + 1
+    end
+    return sum
+end
+
+# L2 Euclidean vector norm
+action vector_norm(v)
+    let sq_sum = 0.0
+    let l = len(v)
+    let i = 0
+    while i < l
+        sq_sum = sq_sum + (v[i] * v[i])
+        i = i + 1
+    end
+    return sqrt(sq_sum)
+end
+
+# Cosine Similarity for Vector Search / Embeddings
+action cosine_similarity_pure(v1, v2)
+    let dot = dot_product(v1, v2)
+    let n1 = vector_norm(v1)
+    let n2 = vector_norm(v2)
+    let denom = n1 * n2
+    if denom < 0.000000000001
+        return 0.0
+    end
+    return dot / denom
+end
+
+# Hardware-Accelerated IEEE-754 Sine
+action sin(x)
+    return math_sin(x)
+end
+
+# Hardware-Accelerated IEEE-754 Cosine
+action cos(x)
+    return math_cos(x)
+end
+
+# Hardware-Accelerated IEEE-754 Tangent
+action tan(x)
+    return math_tan(x)
+end
+
+# Hardware-Accelerated Floor, Ceil, Round
+action floor(x)
+    return math_floor(x)
+end
+
+action ceil(x)
+    return math_ceil(x)
+end
+
+action round(x)
+    return math_round(x)
+end
+
+# Pure-AAYU High-precision sine using Taylor series with range reduction to [-pi/2, pi/2]
+action sin_pure(x)
+    if x == 0.0
+        return 0.0
+    end
+    let pi_val = 3.141592653589793
+    let two_pi = 6.283185307179586
+    let half_pi = 1.5707963267948966
+    let rad = x
+    
+    while rad > pi_val
+        rad = rad - two_pi
+    end
+    while rad < (0.0 - pi_val)
+        rad = rad + two_pi
+    end
+
+    if rad > half_pi
+        rad = pi_val - rad
+    elif rad < (0.0 - half_pi)
+        rad = (0.0 - pi_val) - rad
+    end
+    
+    let x2 = rad * rad
+    let x3 = rad * x2
+    let x5 = x3 * x2
+    let x7 = x5 * x2
+    let x9 = x7 * x2
+    let x11 = x9 * x2
+    
+    let res = rad - (x3 / 6.0) + (x5 / 120.0) - (x7 / 5040.0) + (x9 / 362880.0) - (x11 / 39916800.0)
+    return clamp(res, -1.0, 1.0)
+end
+
+action cos_pure(x)
+    if x == 0.0
+        return 1.0
+    end
+    let half_pi = 1.5707963267948966
+    return sin_pure(half_pi - x)
+end
+
+# Softmax for 1D probability distribution with numerical stabilization (subtract-max)
+action softmax_1d(arr)
+    let n = len(arr)
+    if n == 0
+        return []
+    end
+
+    # Find max
+    let max_v = arr[0]
+    let i = 1
+    while i < n
+        if arr[i] > max_v
+            max_v = arr[i]
+        end
+        i = i + 1
+    end
+
+    # Exponentiate and sum
+    let exps = []
+    let sum_exp = 0.0
+    i = 0
+    while i < n
+        let e = exp(arr[i] - max_v)
+        exps = exps + [e]
+        sum_exp = sum_exp + e
+        i = i + 1
+    end
+
+    # Normalize
+    let probs = []
+    i = 0
+    while i < n
+        probs = probs + [exps[i] / sum_exp]
+        i = i + 1
+    end
+    return probs
+end
+
+action softmax(arr)
+    return softmax_1d(arr)
+end
+
+# Matrix Multiplication for 2D arrays: [M x K] x [K x N] -> [M x N]
+action matrix_mul(m1, m2)
+    let rows_a = len(m1)
+    let cols_a = len(m1[0])
+    let cols_b = len(m2[0])
+    let out = []
+
+    let r = 0
+    while r < rows_a
+        let row_out = []
+        let c = 0
+        while c < cols_b
+            let dot = 0.0
+            let k = 0
+            while k < cols_a
+                dot = dot + (m1[r][k] * m2[k][c])
+                k = k + 1
+            end
+            row_out = row_out + [dot]
+            c = c + 1
+        end
+        out = out + [row_out]
+        r = r + 1
+    end
+    return out
+end
+
+# Matrix Transpose for 2D arrays
+action matrix_transpose(m)
+    let rows = len(m)
+    let cols = len(m[0])
+    let out = []
+
+    let c = 0
+    while c < cols
+        let row_out = []
+        let r = 0
+        while r < rows
+            row_out = row_out + [m[r][c]]
+            r = r + 1
+        end
+        out = out + [row_out]
+        c = c + 1
+    end
+    return out
+end
